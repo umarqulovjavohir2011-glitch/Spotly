@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server"
 
-// Groq platformasining ayni vaqtda faol va rasmiy modellari
+// Groq platformasining ayni vaqtda 100% ISHLAYDIGAN rasmiy modellari
 const CANDIDATE_MODELS = [
-  "llama3-8b-8192",
-  "llama3-70b-8192",
   "llama-3.3-70b-versatile",
-  "gemma2-9b-it"
+  "llama3-70b-8192",
+  "llama3-8b-8192"
 ]
 
 export async function POST(req: Request) {
@@ -41,7 +40,7 @@ Return ONLY a valid JSON object matching this exact structure without markdown b
     let successfulResponseText = ""
     let lastError = ""
 
-    // Faol modellar bo'yicha ketma-ket sinab ko'rish
+    // Har bir faol modelni birma-bir sinash
     for (const model of CANDIDATE_MODELS) {
       try {
         const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -68,6 +67,7 @@ Return ONLY a valid JSON object matching this exact structure without markdown b
           const errText = await res.text()
           try {
             const parsed = JSON.parse(errText)
+            // Agar model o'chirilgan bo'lsa, sikl to'xtamasdan keyingisiga o'tadi
             lastError = parsed.error?.message || errText
           } catch {
             lastError = errText
@@ -80,7 +80,7 @@ Return ONLY a valid JSON object matching this exact structure without markdown b
 
     if (!successfulResponseText) {
       return NextResponse.json(
-        { error: `Groq API xatoligi: Iltimos, API Key to'g'riligini tekshiring. (${lastError})` },
+        { error: `Groq API bilan bog'lanishda xatolik: API Key noto'g mezoniga ega bo'lishi mumkin. (${lastError})` },
         { status: 400 }
       )
     }
@@ -88,7 +88,7 @@ Return ONLY a valid JSON object matching this exact structure without markdown b
     const data = JSON.parse(successfulResponseText)
     let contentString = data.choices[0]?.message?.content || ""
 
-    // JSON tozalash
+    // JSON matnini tozalash
     contentString = contentString.replace(/```json/gi, "").replace(/```/g, "").trim()
     const firstBrace = contentString.indexOf("{")
     const lastBrace = contentString.lastIndexOf("}")
